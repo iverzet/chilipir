@@ -32,3 +32,14 @@ def evaluate(item: Listing):
 @app.get("/deals")
 def deals():
     return {"items": [], "status": "no_authorized_olx_feed", "note": "No live OLX access is configured."}
+
+from app.collector import fetch_public_listings
+from app.scoring import estimate
+
+@app.get("/scan")
+def scan(category: Literal["arta", "foto"] = "foto"):
+    listings, errors = fetch_public_listings(category)
+    scored = [{**item, **estimate(item, listings)} for item in listings]
+    scored.sort(key=lambda row: row.get("discount_pct", -999), reverse=True)
+    return {"category": category, "items": scored, "count": len(scored),
+            "errors": errors, "note": "Best-effort public listings only; no bypass of access restrictions. Empty results do not imply no deals."}
